@@ -9,6 +9,11 @@ open Suave.Web
 let playerWebPart = rest "player" {
   GetAll = Db.getPlayers
   Create = Db.createPLayer
+  Update = Db.updatePlayer
+  Delete = Db.deletePlayer
+  GetById = Db.getPlayer
+  UpdateById = Db.updatePlayerById
+  IsExists = Db.isPersonExists
 }
 
 startWebServer defaultConfig playerWebPart
