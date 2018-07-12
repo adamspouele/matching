@@ -8,6 +8,7 @@ open Suave.Web
 
 let playerWebPart = rest "player" {
   GetAll = Db.getPlayers
+  Create = Db.createPLayer
 }
 
 startWebServer defaultConfig playerWebPart

@@ -6,6 +6,14 @@ type Player = {
   Name : string
 }
 module Db =
-  let private storage = new Dictionary<int, Player>()
+  let private playerStore = new Dictionary<int, Player>()
   let getPlayers () =
-    storage.Values |> Seq.map (fun p -> p)
+    playerStore.Values |> Seq.map (fun p -> p)
+  let createPLayer player =
+    let id = playerStore.Values.Count + 1
+    let newPlayer = {
+        Id = id
+        Name = player.Name
+    }
+    playerStore.Add(id, newPlayer)
+    newPlayer
