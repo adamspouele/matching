@@ -2,6 +2,7 @@
 #load "database.fsx"
 #load "api.fsx"
 
+open Suave
 open SuaveRestApi.Rest
 open SuaveRestApi.Db
 open Suave.Web
@@ -16,4 +17,8 @@ let playerWebPart = rest "player" {
   IsExists = Db.isPersonExists
 }
 
-startWebServer defaultConfig playerWebPart
+startWebServer defaultConfig (
+  choose [
+    playerWebPart
+  ]
+)
