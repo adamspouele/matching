@@ -10,7 +10,7 @@ module Db =
   let private playerStore = new Dictionary<int, Player>()
   let getPlayers () =
     playerStore.Values |> Seq.map (fun p -> p)
-  let createPLayer player =
+  let createPlayer player =
     let id = playerStore.Values.Count + 1
     let newPlayer = {
         Id = id
