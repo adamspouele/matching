@@ -1,40 +1,56 @@
 #r "vendor/Suave.2.4.3/lib/net461/Suave.dll"
-#r "vendor/Newtonsoft.Json.11.0.2/lib/net45/Newtonsoft.Json.dll"
+#load "database.fsx"
+#load "api.fsx"
 
-open Suave 
-open Suave.Json
-open System.Runtime.Serialization
+open Suave
 open Suave.Filters
-open Suave.Operators
-open Suave.Successful
+open Suave.Sockets
+open Suave.Sockets.Control
+open Suave.WebSocket
+open SuaveRestApi.Rest
+open SuaveRestApi.Db
+open Suave.Web
 
-module Controller = 
-    let indexController =
-        "test"
-module Arithmetic = 
-  let add x y =
-      x + y
-  let sub x y =
-      x - y
-
-let app =
-  choose
-    [ 
-      //path "/websocket" >=> handShake ws
-      GET >=> choose
-        [ 
-          path "/players" >=> OK Controller.indexController
-          path "/players" >=> OK "Good bye GET" 
-          pathScan "/add/%d/%d" (fun (a, b) -> OK((a + b).ToString()))
-          RequestErrors.NOT_FOUND "404 not Found."
-        ]
-      POST >=> choose
-        [ 
-          path "/player/new" >=> OK "Hello POST"
-          path "/players" >=> OK "Good bye POST" 
-          RequestErrors.NOT_FOUND "404 not Found."
-        ]
-    ]
+let playerWebPart = rest "player" {
+  GetAll = Db.getPlayers
+  Create = Db.createPlayer
+  Update = Db.updatePlayer
+  Delete = Db.deletePlayer
+  GetById = Db.getPlayer
+  UpdateById = Db.updatePlayerById
+  IsExists = Db.isPersonExists
+}
 
 
-startWebServer defaultConfig app
+let ws (webSocket : WebSocket) (context: HttpContext) =
+    socket {
+       let mutable loop = true
+
+       while loop do
+            let! msg = webSocket.read()
+
+            match msg with
+            | (Text, data, true) ->
+                let str = UTF8.toString data
+                let response = sprintf "response to %s" str
+                let byteResponse =
+                    response
+                    |> System.Text.Encoding.ASCII.GetBytes
+                    |> ByteSegment
+                do! webSocket.send Text byteResponse true
+
+            | (Close, _, _) ->
+                let emptyResponse = [||] |> ByteSegment
+                do! webSocket.send Close emptyResponse true
+                loop <- false
+
+            | _ -> ()
+    }
+
+
+startWebServer defaultConfig (
+  choose [
+    path "/websocket" >=> handShake ws
+    playerWebPart
+  ]
+)
