@@ -1,5 +1,5 @@
 #r "vendor/Suave.2.4.3/lib/net461/Suave.dll"
-#load "database.fsx"
+#load "database/playerDb.fsx"
 #load "api.fsx"
 
 open Suave
@@ -12,15 +12,15 @@ open SuaveRestApi.Db
 open Suave.Web
 
 let playerWebPart = rest "player" {
-  GetAll = Db.getPlayers
-  Create = Db.createPlayer
-  Update = Db.updatePlayer
-  Delete = Db.deletePlayer
-  GetById = Db.getPlayer
-  UpdateById = Db.updatePlayerById
-  IsExists = Db.isPersonExists
+  GetAll = PlayerDb.getPlayers
+  Create = PlayerDb.createPlayer
+  Update = PlayerDb.updatePlayer
+  Delete = PlayerDb.deletePlayer
+  GetById = PlayerDb.getPlayer
+  UpdateById = PlayerDb.updatePlayerById
+  IsExists = PlayerDb.isPlayerExists
+  // selectCards = PlayerDb.selectCards
 }
-
 
 let ws (webSocket : WebSocket) (context: HttpContext) =
     socket {
@@ -50,7 +50,7 @@ let ws (webSocket : WebSocket) (context: HttpContext) =
 
 startWebServer defaultConfig (
   choose [
-    path "/websocket" >=> handShake ws
+    // path "/websocket" >=> handShake ws
     playerWebPart
   ]
 )
