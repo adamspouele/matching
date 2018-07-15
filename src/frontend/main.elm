@@ -1,6 +1,7 @@
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
+import Array
 import Http
 import Json.Decode as JD
 import Json.Encode as JE
@@ -65,7 +66,7 @@ initPlayer =
 
 initOpponent : Opponent
 initOpponent =
-    { name = "Jules"
+    { name = "Opponent"
     , marks = 0
     }
 
@@ -96,27 +97,99 @@ init =
     }
 
 -- UPDATE
+type Msg
+    = CardId String
 
-update : String -> Game -> Game
-update cardId game =
-    selectCard cardId game
+update : Msg -> Game -> Game
+update msg game =
+    case msg of
+        CardId cardId ->
+            (selectCard cardId game)
 
 selectCard : String -> Game -> Game
 selectCard idCard game =
-    if List.length game.player.openedCards == 2 then
-        game
-    else
-        let card =
-            (getCard idCard game.cards)
-            openedCard =
-                {card | isDiscover = True}
-            op = 
-                List.append game.player.openedCards [openedCard]
-            thePlayer = game.player
-            nPlayer =
-                {thePlayer | openedCards = op}
-        in
+    let card =
+        (getCard idCard game.cards)
+        openedCard =
+            {card | isDiscover = True}
+        op = 
+            List.append game.player.openedCards [openedCard]
+        thePlayer =
+            game.player
+        nPlayer =
+            {thePlayer | openedCards = op}
+    in (
+        let nGame =
             ({game | player = nPlayer})
+        in (
+            if List.length nGame.player.openedCards == 2 then 
+                checkCards nGame
+            else nGame
+        )
+    )
+            
+
+getCardWithIndex : Int -> Array.Array Card -> Card
+getCardWithIndex index openedCards =
+    let card = 
+        Array.get index openedCards
+    in (
+        case card of
+            Nothing -> initCard "00"
+            Just val -> val
+    )
+
+isTheCardRev : Card -> String -> Bool
+isTheCardRev card cardId =
+    card.cardId == cardId
+
+doOpenCard : List String -> Card -> Card 
+doOpenCard cardIds card =
+    if (List.any (isTheCardRev card) cardIds) then
+        ({card | isDiscover = True})
+    else card
+
+openCards : List String -> Game -> Game
+openCards cardIds game =
+    let nCards =
+        List.map (doOpenCard cardIds) game.cards
+    in (
+        {game | cards = nCards}
+    )
+
+
+checkMatch : String -> String -> Game -> Game 
+checkMatch fId sId game =
+    let player =
+        game.player
+    in (
+        if (String.contains fId sId) then
+            openCards [fId, sId] ({game | player = ({player | marks = player.marks + 1, openedCards = []})})
+        else
+            ({game | player = ({player | openedCards = []})})
+    )
+checkCards : Game -> Game
+checkCards game =
+    let player =
+            game.player
+        openedCards =
+            Array.fromList player.openedCards
+        fCardId =
+            (getCardWithIndex 0 openedCards).cardId
+        sCardId =
+            (getCardWithIndex 1 openedCards).cardId
+    in (
+        if (String.length fCardId == String.length sCardId) then
+            let nplayer =
+                ({player | openedCards = []})
+            in
+                ({game | player = nplayer})
+        else if (String.length fCardId < String.length sCardId) then
+            checkMatch fCardId sCardId game
+        else
+            checkMatch sCardId fCardId game
+    )
+
 
 isTheCard : String -> Card -> Bool
 isTheCard id card =
@@ -157,19 +230,19 @@ linkToCard openedCards card =
         getLink card
     )
 
-cardToHtml : List Card -> Card -> Html String
+cardToHtml : List Card -> Card -> Html Msg
 cardToHtml openedCards card =
     img[
     style[("width", "116px"), ("height", "160px")]
     , src ("./cards/" ++ (linkToCard openedCards card) ++ ".png")
-    , onClick card.cardId] []
+    , onClick (CardId card.cardId)] []
 
-printAllCards : List Card -> List Card -> Html String
+printAllCards : List Card -> List Card -> Html Msg
 printAllCards gameCards openedCards =
     div[style[("width", "464px"), ("margin", "auto")]]
         (List.map (cardToHtml openedCards) gameCards)
 
-view : Game -> Html String
+view : Game -> Html Msg
 view game =
     let player =
             game.player
